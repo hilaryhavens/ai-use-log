@@ -54,6 +54,8 @@ test('labels', () => {
   assert.equal(toolLabel('WebFetch', { url: 'https://e.org' }), 'Fetched https://e.org');
   assert.equal(toolLabel('WebSearch', { query: 'Burney' }), 'Searched the web: Burney');
   assert.equal(toolLabel('FancyNewTool', { q: 1 }), 'FancyNewTool');
+  assert.equal(toolLabel('mcp__claude_ai_Claude_Docs__batch', {}), 'Connected tool (claude ai Claude Docs): batch');
+  assert.equal(toolLabel('mcp__zotero__search_items', {}), 'Connected tool (zotero): search items');
 });
 
 test('stats', () => {

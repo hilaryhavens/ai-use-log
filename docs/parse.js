@@ -43,7 +43,11 @@ export function toolLabel(name, input) {
     case 'WebSearch': return 'Searched the web: ' + short(input.query, 80);
     case 'Grep': return 'Searched files for: ' + short(input.pattern, 60);
     case 'Glob': return 'Listed files: ' + short(input.pattern, 60);
-    default: return name;
+    default: {
+      const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
+      if (mcp) return 'Connected tool (' + mcp[1].replace(/_/g, ' ') + '): ' + mcp[2].replace(/_/g, ' ');
+      return name;
+    }
   }
 }
 

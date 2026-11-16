@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Use Log Viewer</title>
+<meta name="description" content="Read Claude Code conversation logs saved by the AI Use Log plugin. Files are read in your browser and never uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='3' width='22' height='26' rx='3' fill='%23b34700'/%3E%3Cpath d='M10 10h12M10 16h12M10 22h8' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <h1>AI Use Log Viewer</h1>
+    <p class="lede">Open the <code>ai-log</code> folder from a project to read its Claude Code conversations.
+      <strong>Nothing leaves your computer:</strong> the files are read by your own browser and never uploaded.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loader" aria-labelledby="load-h">
+    <h2 id="load-h" class="visually-hidden">Open log files</h2>
+    <div id="drop" class="drop" tabindex="-1">
+      <p class="drop-big">Drop an <code>ai-log</code> folder or <code>.jsonl</code> files here</p>
+      <p>or</p>
+      <div class="buttons">
+        <label class="btn primary">Choose a folder…<input id="pick-folder" type="file" webkitdirectory multiple hidden></label>
+        <label class="btn">Choose files…<input id="pick-files" type="file" accept=".jsonl,.json" multiple hidden></label>
+      </div>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="list" hidden aria-labelledby="list-h">
+    <h2 id="list-h">Sessions</h2>
+    <ul id="sessions" class="sessions"></ul>
+  </section>
+
+  <section id="view" hidden aria-labelledby="view-title">
+    <p><button id="back" class="btn link" type="button">← All sessions</button></p>
+    <div id="session"></div>
+  </section>
+
+  <section class="help" aria-labelledby="help-h">
+    <h2 id="help-h">About these logs</h2>
+    <p>The <a href="https://github.com/hilaryhavens/ai-use-log">AI Use Log plugin</a> for Claude Code saves a copy of each conversation in the project's <code>ai-log</code> folder after every reply Claude gives. Each session is one <code>.jsonl</code> file. A folder with the same name holds the work of any helper agents Claude sent out (for example, by the Superpowers plugin).</p>
+    <p>These are the original records Claude Code keeps, but they are ordinary files: they show what happened, and they are not tamper-proof.</p>
+  </section>
+</main>
+
+<script type="module" src="viewer.js"></script>
+</body>
+</html>
