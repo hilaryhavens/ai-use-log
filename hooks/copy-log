@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# AI Use Log — copies this Claude Code session's transcript into <project>/ai-log/.
+# Runs after every Claude reply (Stop) and when a session ends (SessionEnd).
+# It must never interrupt Claude: it prints nothing and always exits 0.
+
+main() {
+  local input sid tpath cwd proj logdir existing base src_dir
+
+  input="$(cat)"
+
+  # Pull a string field out of the hook's JSON without needing jq.
+  field() {
+    printf '%s' "$input" | tr -d '\r\n' \
+      | sed -nE "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"(([^\"\\\\]|\\\\.)*)\".*/\1/p" \
+      | sed 's/\\\\/\\/g; s/\\"/"/g'
+  }
+
+  sid="$(field session_id)"
+  tpath="$(field transcript_path)"
+  cwd="$(field cwd)"
+
+  # Session ids are UUIDs; refuse anything that could act as a path.
+  case "$sid" in
+    ''|*[!A-Za-z0-9_-]*) return 0 ;;
+  esac
+  [ -n "$tpath" ] || return 0
+
+  # Windows paths (C:\...) -> Git Bash paths (/c/...)
+  to_unix() {
+    case "$1" in
+      [A-Za-z]:\\*|[A-Za-z]:/*)
+        if command -v cygpath >/dev/null 2>&1; then cygpath -u "$1"; else printf '%s' "$1"; fi ;;
+      *) printf '%s' "$1" ;;
+    esac
+  }
+  tpath="$(to_unix "$tpath")"
+  [ -f "$tpath" ] || return 0
+
+  proj="${CLAUDE_PROJECT_DIR:-$cwd}"
+  [ -n "$proj" ] || return 0
+  proj="$(to_unix "$proj")"
+  [ -d "$proj" ] || return 0
+
+  logdir="${AI_USE_LOG_DIR:-$proj/ai-log}"
+  mkdir -p "$logdir" || return 0
+
+  # Keep one file per session: reuse the date it was first saved under.
+  existing=""
+  for f in "$logdir"/*_"$sid".jsonl; do
+    [ -f "$f" ] && { existing="$f"; break; }
+  done
+  if [ -n "$existing" ]; then
+    base="${existing%.jsonl}"
+  else
+    base="$logdir/$(date +%Y-%m-%d)_$sid"
+  fi
+
+  cp -f "$tpath" "$base.jsonl" || return 0
+
+  # Helper-agent (subagent) transcripts and large tool outputs live beside the transcript.
+  src_dir="${tpath%.jsonl}"
+  for sub in subagents tool-results; do
+    if [ -d "$src_dir/$sub" ]; then
+      mkdir -p "$base/$sub" && cp -rf "$src_dir/$sub/." "$base/$sub/"
+    fi
+  done
+  return 0
+}
+
+main >/dev/null 2>&1
+exit 0

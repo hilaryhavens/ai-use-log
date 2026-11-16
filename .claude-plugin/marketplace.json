@@ -1,0 +1,14 @@
+{
+  "name": "ai-use-log",
+  "description": "AI Use Log plugin for Claude Code",
+  "owner": { "name": "Hilary Havens" },
+  "plugins": [
+    {
+      "name": "ai-use-log",
+      "description": "Automatically saves a copy of every Claude Code conversation in your project's ai-log folder.",
+      "version": "1.0.0",
+      "source": "./",
+      "author": { "name": "Hilary Havens" }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Hook scripts are run by bash (and the .cmd by cmd.exe too): keep LF endings
+hooks/* text eol=lf
+*.sh text eol=lf
+*.json text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.jsonl text eol=lf
