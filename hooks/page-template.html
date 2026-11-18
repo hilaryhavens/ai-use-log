@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Use Log</title>
+<meta name="description" content="Read Claude Code conversation logs saved by the AI Use Log plugin. Files are read in your browser and never uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='3' width='22' height='26' rx='3' fill='%23b34700'/%3E%3Cpath d='M10 10h12M10 16h12M10 22h8' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --ink: #1f2328;
+  --muted: #5b616b;
+  --line: #dcd8cf;
+  --accent: #b34700;
+  --accent-ink: #ffffff;
+  --prompt-bg: #fff4e8;
+  --prompt-line: #e8a46a;
+  --tool-bg: #f3f2ee;
+  --error: #b42318;
+  --note: #6b5e3c;
+  --focus: #1a5fb4;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --surface: #1e2126; --ink: #e8e6e1; --muted: #a3a8b0; --line: #3a3f47;
+    --accent: #ff9a4d; --accent-ink: #1a1a1a; --prompt-bg: #2c2218; --prompt-line: #a8642d;
+    --tool-bg: #24272d; --error: #ff8a80; --note: #d6c79c; --focus: #8ab4ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181c; --surface: #1e2126; --ink: #e8e6e1; --muted: #a3a8b0; --line: #3a3f47;
+  --accent: #ff9a4d; --accent-ink: #1a1a1a; --prompt-bg: #2c2218; --prompt-line: #a8642d;
+  --tool-bg: #24272d; --error: #ff8a80; --note: #d6c79c; --focus: #8ab4ff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-wrap: anywhere;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+header.site { border-bottom: 1px solid var(--line); background: var(--surface); padding: 20px 0 12px; margin-bottom: 24px; }
+h1 { margin: 0 0 6px; font-size: 1.6rem; }
+h2 { font-size: 1.25rem; margin: 28px 0 12px; }
+.lede { margin: 0; color: var(--muted); }
+code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px 16px; text-align: center; background: var(--surface); }
+.drop.over { border-color: var(--accent); background: var(--prompt-bg); }
+.drop p { margin: 4px 0; }
+.drop-big { font-size: 1.1rem; font-weight: 600; }
+.buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.btn {
+  display: inline-block; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.link { border: none; background: none; color: var(--accent); padding: 4px 0; text-decoration: underline; }
+label.btn:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.status { color: var(--muted); min-height: 1.5em; }
+
+.sessions { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.sessions button {
+  width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 12px 14px; font: inherit; cursor: pointer;
+}
+.sessions button:hover { border-color: var(--accent); }
+.sessions .s-title { font-weight: 600; display: block; }
+.sessions .s-meta { color: var(--muted); font-size: .9rem; }
+
+.s-head h2 { margin-top: 0; font-size: 1.4rem; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; margin: 0 0 16px; font-size: .95rem; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.stat b { display: block; font-size: 1.4rem; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.lists { font-size: .95rem; margin: 8px 0 16px; }
+.lists p { margin: 4px 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 16px 0; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.toolbar label { display: inline-flex; gap: 6px; align-items: center; }
+
+.timeline { display: grid; gap: 10px; }
+.step { border-radius: 10px; padding: 10px 14px; }
+.step .who { font-size: .8rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.step .text { white-space: pre-wrap; margin-top: 4px; }
+.step.prompt { background: var(--prompt-bg); border-left: 5px solid var(--prompt-line); }
+.step.reply { background: var(--surface); border: 1px solid var(--line); }
+.step.note { color: var(--note); font-style: italic; padding: 2px 14px; }
+.step.thinking { background: var(--surface); border: 1px dashed var(--line); }
+details.tool { background: var(--tool-bg); border-radius: 8px; padding: 6px 12px; }
+details.tool > summary { cursor: pointer; font-size: .95rem; }
+details.tool.error > summary { color: var(--error); }
+details.tool .sub { color: var(--muted); font-size: .85rem; margin: 8px 0 2px; }
+pre {
+  white-space: pre-wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 10px; margin: 0; font: .85rem/1.45 ui-monospace, Consolas, monospace; max-height: 420px; overflow: auto;
+}
+.agent { margin-top: 10px; border-left: 3px solid var(--accent); padding-left: 12px; }
+.agent > .timeline { gap: 8px; }
+.hide-actions .step-tool, .hide-actions .step-thinking, .hide-actions .step-reply { display: none; }
+
+@media print {
+  header.site, #loader, .help, #back, .toolbar { display: none !important; }
+  details.tool { break-inside: avoid; }
+  pre { max-height: none; }
+}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <h1>AI Use Log</h1>
+    <p id="embedded-head" class="lede" hidden></p>
+    <p class="lede">Open the <code>ai-log</code> folder from a project to read its Claude Code conversations.
+      <strong>Nothing leaves your computer:</strong> the files are read by your own browser and never uploaded.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loader" aria-labelledby="load-h">
+    <h2 id="load-h" class="visually-hidden">Open log files</h2>
+    <div id="drop" class="drop" tabindex="-1">
+      <p class="drop-big">Drop an <code>ai-log</code> folder or <code>.jsonl</code> files here</p>
+      <p>or</p>
+      <div class="buttons">
+        <label class="btn primary">Choose a folder…<input id="pick-folder" type="file" webkitdirectory multiple hidden></label>
+        <label class="btn">Choose files…<input id="pick-files" type="file" accept=".jsonl,.json" multiple hidden></label>
+      </div>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="list" hidden aria-labelledby="list-h">
+    <h2 id="list-h">Sessions</h2>
+    <ul id="sessions" class="sessions"></ul>
+  </section>
+
+  <section id="view" hidden aria-labelledby="view-title">
+    <p><button id="back" class="btn link" type="button">← All sessions</button></p>
+    <div id="session"></div>
+  </section>
+
+  <section class="help" aria-labelledby="help-h">
+    <h2 id="help-h">About these logs</h2>
+    <p>The <a href="https://github.com/hilaryhavens/ai-use-log">AI Use Log plugin</a> for Claude Code saves a copy of each conversation in the project's <code>ai-log</code> folder after every reply Claude gives. Each session is one <code>.jsonl</code> file. A folder with the same name holds the work of any helper agents Claude sent out (for example, by the Superpowers plugin).</p>
+    <p>These are the original records Claude Code keeps, but they are ordinary files: they show what happened, and they are not tamper-proof.</p>
+  </section>
+</main>
+
+<!--AI-USE-LOG-DATA-->
+<script>
+(() => {
+// Parses Claude Code transcript files (.jsonl) into a readable session.
+// Pure functions, no DOM: used by the viewer page and by the Node tests.
+
+const PLAYWRIGHT = /^mcp__.*playwright.*__browser_(.+)$/;
+const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
+const COMMAND_TOOLS = new Set(['Bash', 'PowerShell']);
+const AGENT_TOOLS = new Set(['Agent', 'Task']);
+// User-role text that Claude Code adds itself, not something the person typed.
+const NOT_TYPED = /^\s*<(local-command-caveat|local-command-stdout|local-command-stderr|system-reminder|task-notification|bash-input|bash-stdout|bash-stderr)>/;
+
+function baseName(p) {
+  if (!p) return '';
+  const parts = String(p).split(/[\\/]/);
+  return parts[parts.length - 1];
+}
+
+function short(s, n) {
+  s = String(s ?? '').replace(/\s+/g, ' ').trim();
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+function toolLabel(name, input) {
+  input = input || {};
+  const pw = PLAYWRIGHT.exec(name);
+  if (pw) {
+    const action = pw[1];
+    if (action === 'navigate') return 'Playwright: opened ' + (input.url || 'a page');
+    if (action === 'take_screenshot') return 'Playwright: took a screenshot';
+    if (action === 'snapshot') return 'Playwright: read the page';
+    if (action === 'click') return 'Playwright: clicked ' + (input.element || 'an element');
+    if (action === 'type') return 'Playwright: typed into ' + (input.element || 'a field');
+    return 'Playwright: ' + action.replace(/_/g, ' ');
+  }
+  switch (name) {
+    case 'Edit': case 'MultiEdit': return 'Edited ' + baseName(input.file_path);
+    case 'Write': return 'Created or overwrote ' + baseName(input.file_path);
+    case 'NotebookEdit': return 'Edited notebook ' + baseName(input.notebook_path || input.file_path);
+    case 'Read': return 'Read ' + baseName(input.file_path);
+    case 'Bash': case 'PowerShell': return 'Ran a command: ' + short(input.description || input.command, 80);
+    case 'Skill': return 'Used skill: ' + (input.skill || '?');
+    case 'Agent': case 'Task': return 'Sent a helper agent: ' + short(input.description || input.prompt, 80);
+    case 'WebFetch': return 'Fetched ' + (input.url || 'a web page');
+    case 'WebSearch': return 'Searched the web: ' + short(input.query, 80);
+    case 'Grep': return 'Searched files for: ' + short(input.pattern, 60);
+    case 'Glob': return 'Listed files: ' + short(input.pattern, 60);
+    default: {
+      const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
+      if (mcp) return 'Connected tool (' + mcp[1].replace(/_/g, ' ') + '): ' + mcp[2].replace(/_/g, ' ');
+      return name;
+    }
+  }
+}
+
+function resultText(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((c) => {
+      if (c.type === 'text') return c.text;
+      if (c.type === 'image') return '[image]';
+      if (c.type === 'tool_reference') return '[loaded tool ' + c.tool_name + ']';
+      return '[' + c.type + ']';
+    }).join('\n');
+  }
+  return JSON.stringify(content);
+}
+
+function userText(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content.map((c) => {
+    if (c.type === 'text') return c.text;
+    if (c.type === 'image') return '[image attached]';
+    if (c.type === 'document') return '[document attached]';
+    return '';
+  }).filter(Boolean).join('\n');
+}
+
+function parseSession(text, opts = {}) {
+  const s = {
+    id: '', title: '', cwd: '', model: '', start: '', end: '', version: '',
+    steps: [], skipped: 0, orphanAgents: [],
+    stats: { prompts: 0, filesChanged: [], commands: 0, skills: [], playwright: 0, subagents: 0 },
+  };
+  const toolsById = new Map();
+  const files = new Set();
+  const skills = new Set();
+  let aiTitle = '';
+
+  for (const raw of String(text).split(/\r?\n/)) {
+    if (!raw.trim()) continue;
+    let d;
+    try { d = JSON.parse(raw); } catch { s.skipped++; continue; }
+    if (!d || typeof d !== 'object') { s.skipped++; continue; }
+
+    if (d.sessionId && !s.id) s.id = d.sessionId;
+    if (d.type === 'ai-title' && d.aiTitle) { aiTitle = d.aiTitle; continue; }
+    if (d.type !== 'user' && d.type !== 'assistant' && d.type !== 'system') continue;
+
+    const time = d.timestamp || '';
+    if (time) { if (!s.start) s.start = time; s.end = time; }
+    if (d.cwd && !s.cwd) s.cwd = d.cwd;
+    if (d.version && !s.version) s.version = d.version;
+
+    if (d.type === 'system') {
+      if (d.subtype === 'compact_boundary') s.steps.push({ kind: 'note', time, text: 'Conversation was compacted (older messages summarised)' });
+      continue;
+    }
+
+    const content = d.message && d.message.content;
+
+    if (d.type === 'assistant') {
+      if (d.message.model && !s.model && !String(d.message.model).startsWith('<')) s.model = d.message.model;
+      for (const c of Array.isArray(content) ? content : []) {
+        if (c.type === 'text' && c.text && c.text.trim()) s.steps.push({ kind: 'reply', time, text: c.text });
+        else if (c.type === 'thinking' && c.thinking && c.thinking.trim()) s.steps.push({ kind: 'thinking', time, text: c.thinking });
+        else if (c.type === 'tool_use') {
+          const tool = { id: c.id, name: c.name, label: toolLabel(c.name, c.input), detail: c.input || {}, result: '', isError: false };
+          toolsById.set(c.id, tool);
+          s.steps.push({ kind: 'tool', time, tool });
+          if (FILE_TOOLS.has(c.name)) files.add(baseName((c.input || {}).file_path || (c.input || {}).notebook_path));
+          if (COMMAND_TOOLS.has(c.name)) s.stats.commands++;
+          if (c.name === 'Skill' && c.input && c.input.skill) skills.add(c.input.skill);
+          if (PLAYWRIGHT.test(c.name)) s.stats.playwright++;
+          if (AGENT_TOOLS.has(c.name)) s.stats.subagents++;
+        }
+      }
+      continue;
+    }
+
+    // user records
+    if (Array.isArray(content) && content.some((c) => c.type === 'tool_result')) {
+      for (const c of content) {
+        if (c.type !== 'tool_result') continue;
+        const tool = toolsById.get(c.tool_use_id);
+        if (!tool) continue;
+        tool.result = resultText(c.content);
+        tool.isError = !!c.is_error;
+        const agentId = d.toolUseResult && typeof d.toolUseResult === 'object' && d.toolUseResult.agentId;
+        if (agentId) tool.agentId = agentId;
+      }
+      continue;
+    }
+    if (d.isMeta || d.isCompactSummary) continue;
+    const t = userText(content);
+    if (!t.trim() || NOT_TYPED.test(t)) continue;
+    const cmd = /^\s*<command-name>([^<]*)<\/command-name>/.exec(t);
+    if (cmd) {
+      const args = /<command-args>([^<]*)<\/command-args>/.exec(t);
+      s.steps.push({ kind: 'note', time, text: 'Ran ' + cmd[1].trim() + (args && args[1].trim() ? ' ' + args[1].trim() : '') });
+      continue;
+    }
+    s.steps.push({ kind: 'prompt', time, text: t });
+    s.stats.prompts++;
+  }
+
+  if (!s.id && opts.name) {
+    const m = /^(?:\d{4}-\d{2}-\d{2}_)?(.+?)\.jsonl$/i.exec(baseName(opts.name));
+    if (m) s.id = m[1];
+  }
+  const firstPrompt = s.steps.find((x) => x.kind === 'prompt');
+  s.title = aiTitle || (firstPrompt ? short(firstPrompt.text, 60) : '(no prompts)');
+  s.stats.filesChanged = [...files].filter(Boolean);
+  s.stats.skills = [...skills];
+  return s;
+}
+
+// agents: [{ agentId, meta, session }] — nests each helper agent under the step that launched it.
+function attachSubagents(main, agents) {
+  const tools = main.steps.filter((x) => x.kind === 'tool');
+  for (const a of agents) {
+    const byMeta = a.meta && a.meta.toolUseId && tools.find((x) => x.tool.id === a.meta.toolUseId);
+    const byId = !byMeta && tools.find((x) => x.tool.agentId && x.tool.agentId === a.agentId);
+    const step = byMeta || byId;
+    if (a.meta && a.meta.description && !a.session.description) a.session.description = a.meta.description;
+    if (step) step.children = a.session;
+    else main.orphanAgents.push(a.session);
+  }
+}
+
+
+const LIMIT = 4000;
+const $ = (id) => document.getElementById(id);
+let sessions = [];
+
+// ---------- loading files ----------
+
+function readAsText(file) {
+  return file.text ? file.text() : new Promise((res, rej) => {
+    const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsText(file);
+  });
+}
+
+// Walk folders dropped onto the page.
+async function entriesToFiles(entries) {
+  const out = [];
+  async function walk(entry, path) {
+    if (entry.isFile) {
+      const file = await new Promise((res, rej) => entry.file(res, rej));
+      out.push({ file, path: path + file.name });
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {
+        batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+        for (const e of batch) await walk(e, path + entry.name + '/');
+      } while (batch.length);
+    }
+  }
+  for (const e of entries) await walk(e, '');
+  return out;
+}
+
+async function load(items) {
+  const status = $('status');
+  const jsonl = items.filter((x) => /\.jsonl$/i.test(x.file.name));
+  if (!jsonl.length) { status.textContent = 'No .jsonl log files found there. Choose the project\'s ai-log folder, or the .jsonl files inside it.'; return; }
+  status.textContent = 'Reading ' + jsonl.length + ' file' + (jsonl.length === 1 ? '' : 's') + '…';
+
+  const metas = new Map();
+  for (const x of items.filter((i) => /^agent-.*\.meta\.json$/i.test(i.file.name))) {
+    try { metas.set(x.path.replace(/\.meta\.json$/i, ''), JSON.parse(await readAsText(x.file))); } catch { /* ignore */ }
+  }
+
+  const mains = [], agents = [];
+  for (const x of jsonl) {
+    let text = '';
+    try { text = await readAsText(x.file); } catch { continue; }
+    if (/^agent-/i.test(x.file.name)) {
+      const key = x.path.replace(/\.jsonl$/i, '');
+      agents.push({
+        path: x.path,
+        agentId: x.file.name.replace(/^agent-|\.jsonl$/gi, ''),
+        meta: metas.get(key) || null,
+        session: parseSession(text, { name: x.file.name }),
+      });
+    } else {
+      const s = parseSession(text, { name: x.file.name });
+      s.fileName = x.file.name;
+      s.key = x.file.name.replace(/\.jsonl$/i, '');
+      mains.push(s);
+    }
+  }
+
+  // Helper agents live in "<session file name>/subagents/". Match by folder, else by tool id.
+  const leftovers = [];
+  for (const a of agents) {
+    const owner = mains.find((s) => a.path.includes(s.key + '/subagents/'));
+    if (owner) attachSubagents(owner, [a]); else leftovers.push(a);
+  }
+  for (const a of leftovers) {
+    const owner = mains.find((s) => s.steps.some((st) => st.kind === 'tool' &&
+      ((a.meta && st.tool.id === a.meta.toolUseId) || st.tool.agentId === a.agentId)));
+    if (owner) attachSubagents(owner, [a]);
+    else if (mains.length === 1) attachSubagents(mains[0], [a]);
+  }
+
+  sessions = mains.sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  const extra = agents.length ? ' and ' + agents.length + ' helper-agent log' + (agents.length === 1 ? '' : 's') : '';
+  status.textContent = 'Loaded ' + sessions.length + ' session' + (sessions.length === 1 ? '' : 's') + extra + '.';
+  if (sessions.length === 1) showSession(0); else showList();
+}
+
+// ---------- small DOM helpers (always textContent: logs never become markup) ----------
+
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else n.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+function duration(a, b) {
+  const ms = new Date(b) - new Date(a);
+  if (!(ms > 0)) return '';
+  const m = Math.round(ms / 60000);
+  return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+}
+
+function longText(text) {
+  const pre = el('pre');
+  const s = String(text ?? '');
+  if (s.length <= LIMIT) { pre.textContent = s; return pre; }
+  pre.textContent = s.slice(0, LIMIT) + '\n…';
+  const more = el('button', { class: 'btn link', type: 'button', text: 'Show all (' + s.length.toLocaleString() + ' characters)' });
+  more.addEventListener('click', () => { pre.textContent = s; more.remove(); });
+  return el('div', {}, pre, more);
+}
+
+// ---------- rendering ----------
+
+function showList() {
+  $('view').hidden = true;
+  const ul = $('sessions');
+  ul.replaceChildren();
+  sessions.forEach((s, i) => {
+    const b = el('button', { type: 'button' },
+      el('span', { class: 's-title', text: s.title }),
+      el('span', { class: 's-meta', text: [fmtDate(s.start), duration(s.start, s.end), s.stats.prompts + ' prompt' + (s.stats.prompts === 1 ? '' : 's')].filter(Boolean).join(' · ') }));
+    b.addEventListener('click', () => showSession(i));
+    ul.append(el('li', {}, b));
+  });
+  $('list').hidden = false;
+}
+
+function renderSteps(steps) {
+  const box = el('div', { class: 'timeline' });
+  for (const st of steps) {
+    if (st.kind === 'prompt') {
+      box.append(el('div', { class: 'step prompt step-prompt' },
+        el('div', { class: 'who' }, el('span', { text: 'Student' }), el('span', { text: fmtTime(st.time) })),
+        el('div', { class: 'text', text: st.text })));
+    } else if (st.kind === 'reply') {
+      box.append(el('div', { class: 'step reply step-reply' },
+        el('div', { class: 'who' }, el('span', { text: 'Claude' }), el('span', { text: fmtTime(st.time) })),
+        el('div', { class: 'text', text: st.text })));
+    } else if (st.kind === 'thinking') {
+      const d = el('details', { class: 'step thinking step-thinking' }, el('summary', { text: 'Claude’s reasoning' }), longText(st.text));
+      box.append(d);
+    } else if (st.kind === 'note') {
+      box.append(el('div', { class: 'step note step-note', text: st.text }));
+    } else if (st.kind === 'tool') {
+      const t = st.tool;
+      const d = el('details', { class: 'tool step-tool' + (t.isError ? ' error' : '') },
+        el('summary', { text: (t.isError ? '⚠ ' : '') + t.label }),
+        el('p', { class: 'sub', text: 'Tool: ' + t.name }),
+        longText(typeof t.detail === 'string' ? t.detail : JSON.stringify(t.detail, null, 2)),
+        el('p', { class: 'sub', text: t.isError ? 'Result (error)' : 'Result' }),
+        longText(t.result || '(no result recorded)'));
+      if (st.children) d.append(renderAgent(st.children));
+      box.append(d);
+    }
+  }
+  return box;
+}
+
+function renderAgent(a) {
+  return el('div', { class: 'agent' },
+    el('p', { class: 'sub', text: 'Helper agent' + (a.description ? ': ' + a.description : '') + (a.model ? ' (' + a.model + ')' : '') }),
+    renderSteps(a.steps));
+}
+
+function showSession(i) {
+  const s = sessions[i];
+  const st = s.stats;
+  $('list').hidden = true;
+  const root = $('session');
+  root.replaceChildren();
+
+  const facts = el('dl', { class: 'facts' });
+  const fact = (k, v) => { if (v) facts.append(el('dt', { text: k }), el('dd', { text: v })); };
+  fact('Started', fmtDate(s.start));
+  fact('Length', duration(s.start, s.end));
+  fact('Project folder', s.cwd);
+  fact('Model', s.model);
+  fact('Claude Code', s.version);
+  fact('File', s.fileName);
+  fact('Session id', s.id);
+
+  const stat = (n, label) => el('div', { class: 'stat' }, el('b', { text: String(n) }), el('span', { text: label }));
+  const lists = el('div', { class: 'lists' });
+  if (st.filesChanged.length) lists.append(el('p', { text: 'Files Claude created or edited: ' + st.filesChanged.join(', ') }));
+  if (st.skills.length) lists.append(el('p', { text: 'Skills used: ' + st.skills.join(', ') }));
+  if (s.skipped) lists.append(el('p', { text: s.skipped + ' unreadable line' + (s.skipped === 1 ? ' was' : 's were') + ' skipped.' }));
+
+  const onlyPrompts = el('input', { type: 'checkbox', id: 'only-prompts' });
+  const timeline = renderSteps(s.steps);
+  onlyPrompts.addEventListener('change', () => timeline.classList.toggle('hide-actions', onlyPrompts.checked));
+  const expand = el('button', { class: 'btn', type: 'button', text: 'Expand all actions' });
+  expand.addEventListener('click', () => {
+    const all = timeline.querySelectorAll('details');
+    const open = expand.dataset.open !== '1';
+    all.forEach((d) => { d.open = open; });
+    expand.dataset.open = open ? '1' : '0';
+    expand.textContent = open ? 'Collapse all actions' : 'Expand all actions';
+  });
+  const print = el('button', { class: 'btn', type: 'button', text: 'Print / save as PDF' });
+  print.addEventListener('click', () => window.print());
+
+  root.append(
+    el('div', { class: 's-head' }, el('h2', { id: 'view-title', tabindex: '-1', text: s.title }), facts),
+    el('div', { class: 'stats' },
+      stat(st.prompts, 'student prompts'),
+      stat(st.filesChanged.length, 'files changed'),
+      stat(st.commands, 'commands run'),
+      stat(st.playwright, 'Playwright actions'),
+      stat(st.subagents, 'helper agents')),
+    lists,
+    el('div', { class: 'toolbar' },
+      el('label', {}, onlyPrompts, 'Show only the student’s prompts'), expand, print),
+    timeline);
+
+  if (s.orphanAgents.length) {
+    root.append(el('h3', { text: 'Other helper-agent logs' }));
+    for (const a of s.orphanAgents) root.append(renderAgent(a));
+  }
+
+  $('back').hidden = sessions.length < 2;
+  $('view').hidden = false;
+  $('view-title').focus();
+}
+
+// ---------- wiring ----------
+
+$('back').addEventListener('click', showList);
+for (const id of ['pick-folder', 'pick-files']) {
+  $(id).addEventListener('change', (e) => {
+    const files = [...e.target.files].map((file) => ({ file, path: file.webkitRelativePath || file.name }));
+    load(files);
+    e.target.value = '';
+  });
+}
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, () => drop.classList.remove('over')));
+drop.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  const items = [...(e.dataTransfer.items || [])];
+  const entries = items.map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const files = entries.length ? await entriesToFiles(entries)
+    : [...e.dataTransfer.files].map((file) => ({ file, path: file.name }));
+  load(files);
+});
+// Stop a missed drop from navigating away from the page.
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => e.preventDefault());
+
+// ---------- embedded mode: AI-Use-Log.html carries its own logs ----------
+
+const embedded = [...document.querySelectorAll('script.log')];
+if (embedded.length) {
+  let meta = {};
+  try { meta = JSON.parse($('ai-log-meta').textContent); } catch { /* no header info */ }
+  $('loader').hidden = true;
+  document.querySelector('.site .lede').hidden = true;
+  const head = $('embedded-head');
+  if (head) {
+    const when = fmtDate(meta.updated);
+    head.textContent = (meta.project ? 'Project: ' + meta.project : 'Project log') + (when ? ' · updated ' + when : '');
+    head.hidden = false;
+  }
+  load(embedded.map((s) => {
+    const path = s.dataset.path || '';
+    const text = s.textContent;
+    return { file: { name: path.split('/').pop(), text: () => Promise.resolve(text) }, path };
+  }));
+}
+})();
+</script>
+</body>
+</html>

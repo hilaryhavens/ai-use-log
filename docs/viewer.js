@@ -260,3 +260,24 @@ drop.addEventListener('drop', async (e) => {
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
+// ---------- embedded mode: AI-Use-Log.html carries its own logs ----------
+
+const embedded = [...document.querySelectorAll('script.log')];
+if (embedded.length) {
+  let meta = {};
+  try { meta = JSON.parse($('ai-log-meta').textContent); } catch { /* no header info */ }
+  $('loader').hidden = true;
+  document.querySelector('.site .lede').hidden = true;
+  const head = $('embedded-head');
+  if (head) {
+    const when = fmtDate(meta.updated);
+    head.textContent = (meta.project ? 'Project: ' + meta.project : 'Project log') + (when ? ' · updated ' + when : '');
+    head.hidden = false;
+  }
+  load(embedded.map((s) => {
+    const path = s.dataset.path || '';
+    const text = s.textContent;
+    return { file: { name: path.split('/').pop(), text: () => Promise.resolve(text) }, path };
+  }));
+}
+
