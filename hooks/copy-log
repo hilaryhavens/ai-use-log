@@ -64,7 +64,37 @@ main() {
       mkdir -p "$base/$sub" && cp -rf "$src_dir/$sub/." "$base/$sub/"
     fi
   done
+
+  write_page "$logdir" "$(basename "$proj")"
   return 0
+}
+
+# Rebuilds <logdir>/AI-Use-Log.html: the viewer template with every log embedded as inert JSON data.
+# Every "<" in the data becomes < (valid inside JSON strings, the only place "<" can occur),
+# so no log text can close its <script> block or turn into markup.
+write_page() {
+  local logdir="$1" name="$2" tpl out f rel marker='<!--AI-USE-LOG-DATA-->'
+  tpl="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/page-template.html"
+  [ -f "$tpl" ] || return 0
+  grep -qxF "$marker" "$tpl" || return 0
+  out="$logdir/AI-Use-Log.html"
+
+  name="$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g; s/</\\u003c/g')"
+  {
+    sed "/^$marker\$/,\$d" "$tpl"
+    printf '<script type="application/json" id="ai-log-meta">{"project":"%s","updated":"%s"}</script>\n' \
+      "$name" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    for f in "$logdir"/*.jsonl "$logdir"/*/subagents/agent-*.jsonl "$logdir"/*/subagents/agent-*.meta.json; do
+      [ -f "$f" ] || continue
+      rel="${f#"$logdir"/}"
+      case "$rel" in ''|*[!A-Za-z0-9._/-]*) continue ;; esac
+      printf '<script type="application/json" class="log" data-path="%s">' "$rel"
+      sed 's/</\\u003c/g' "$f"
+      printf '</script>\n'
+    done
+    sed "1,/^$marker\$/d" "$tpl"
+  } > "$out.tmp" && mv -f "$out.tmp" "$out"
+  rm -f "$out.tmp"
 }
 
 main >/dev/null 2>&1

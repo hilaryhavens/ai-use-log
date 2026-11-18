@@ -82,6 +82,67 @@ P="$T/proj7"; C="$T/claude7"; mkdir -p "$P"; make_session "$C" s7
 run_hook "$P" "{\"session_id\":\"../evil\",\"transcript_path\":\"$C/s7.jsonl\",\"cwd\":\"$P\"}"
 [ ! -e "$P/evil.jsonl" ] && [ ! -e "$T/evil.jsonl" ] && [ "$CODE" = 0 ] && ok "no escape" || bad "no escape"
 
+PAGE=AI-Use-Log.html
+has()   { grep -qF -- "$2" "$1"; }
+count() { grep -oF -- "$2" "$1" | wc -l | tr -d ' '; }
+
+echo "page created"
+P="$T/proj8"; C="$T/claude8"; mkdir -p "$P"; make_session "$C" s8
+run_hook "$P" "{\"session_id\":\"s8\",\"transcript_path\":\"$C/s8.jsonl\",\"cwd\":\"$P\"}"
+F="$P/ai-log/$PAGE"
+[ -f "$F" ] && ok "page exists" || bad "page exists" "$(ls "$P/ai-log")"
+has "$F" "class=\"log\" data-path=\"${TODAY}_s8.jsonl\"" && ok "main block" || bad "main block"
+has "$F" "data-path=\"${TODAY}_s8/subagents/agent-abc.jsonl\"" && ok "agent block" || bad "agent block"
+has "$F" "data-path=\"${TODAY}_s8/subagents/agent-abc.meta.json\"" && ok "meta block" || bad "meta block"
+! has "$F" "tool-results" && ok "no tool-results" || bad "no tool-results"
+has "$F" 'id="ai-log-meta">{"project":"proj8","updated":"' && ok "header meta" || bad "header meta"
+has "$F" 'function parseSession(' && ok "viewer inlined" || bad "viewer inlined"
+[ "$CODE" = 0 ] && [ -z "$OUT" ] && ok "still silent" || bad "still silent" "$CODE $OUT"
+
+echo "rebuild"
+C2="$T/claude8b"; make_session "$C2" s8b
+run_hook "$P" "{\"session_id\":\"s8b\",\"transcript_path\":\"$C2/s8b.jsonl\",\"cwd\":\"$P\"}"
+has "$F" "data-path=\"${TODAY}_s8.jsonl\"" && has "$F" "data-path=\"${TODAY}_s8b.jsonl\"" && ok "both sessions" || bad "both sessions"
+[ "$(count "$F" '<!doctype')" = 1 ] && ok "one page, not appended" || bad "one page, not appended" "$(count "$F" '<!doctype')"
+[ ! -e "$F.tmp" ] && ok "no tmp left" || bad "no tmp left"
+
+echo "script-tag injection"
+P="$T/proj9"; C="$T/claude9"; mkdir -p "$P"; make_session "$C" s9
+printf '%s\n' '{"type":"user","message":{"role":"user","content":"</script><script>alert(1)</script><!--"}}' >> "$C/s9.jsonl"
+run_hook "$P" "{\"session_id\":\"s9\",\"transcript_path\":\"$C/s9.jsonl\",\"cwd\":\"$P\"}"
+F="$P/ai-log/$PAGE"
+has "$F" '\u003c/script>\u003cscript>alert(1)\u003c/script>\u003c!--' && ok "data escaped" || bad "data escaped"
+[ "$(count "$F" '</script>')" = "$(count "$F" '<script')" ] && ok "tags balanced" || bad "tags balanced" "$(count "$F" '</script>') vs $(count "$F" '<script')"
+cmp -s "$C/s9.jsonl" "$P/ai-log/${TODAY}_s9.jsonl" && ok "jsonl copy untouched" || bad "jsonl copy untouched"
+
+echo "odd project name"
+P="$T/Proj \"A\" <b>"
+if mkdir -p "$P" 2>/dev/null; then
+  C="$T/claude10"; make_session "$C" s10
+  run_hook "$P" "{\"session_id\":\"s10\",\"transcript_path\":\"$C/s10.jsonl\",\"cwd\":\"x\"}"
+  has "$P/ai-log/$PAGE" '{"project":"Proj \"A\" \u003cb>"' && ok "name escaped" || bad "name escaped" "$(grep -o 'ai-log-meta">[^<]*' "$P/ai-log/$PAGE")"
+else
+  echo "  skip (filesystem refuses the name)"
+fi
+
+echo "single session no agents"
+P="$T/proj11"; C="$T/claude11"; mkdir -p "$P" "$C"
+printf '{"type":"user","message":{"role":"user","content":"hi"}}\n' > "$C/s11.jsonl"
+run_hook "$P" "{\"session_id\":\"s11\",\"transcript_path\":\"$C/s11.jsonl\",\"cwd\":\"$P\"}"
+[ "$(count "$P/ai-log/$PAGE" 'class="log"')" = 1 ] && ok "one log block" || bad "one log block"
+[ "$CODE" = 0 ] && [ -z "$OUT" ] && ok "still silent" || bad "still silent" "$CODE $OUT"
+
+echo "hook called by Windows path (as run-hook.cmd does)"
+if command -v cygpath >/dev/null 2>&1; then
+  P="$T/proj12"; C="$T/claude12"; mkdir -p "$P"; make_session "$C" s12
+  WINHOOK="$(cygpath -w "$HOOK")"
+  (cd "$T" && printf '%s' "{\"session_id\":\"s12\",\"transcript_path\":\"$C/s12.jsonl\",\"cwd\":\"$P\"}" \
+    | CLAUDE_PROJECT_DIR="$P" bash "$WINHOOK" >/dev/null 2>&1)
+  [ -f "$P/ai-log/$PAGE" ] && ok "page via windows path" || bad "page via windows path" "$WINHOOK"
+else
+  echo "  skip (no cygpath)"
+fi
+
 echo
 echo "passed: $PASS  failed: $FAIL"
 [ "$FAIL" = 0 ]
