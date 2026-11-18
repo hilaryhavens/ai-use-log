@@ -1,7 +1,7 @@
 {
   "name": "ai-use-log",
   "description": "Automatically saves a copy of every Claude Code conversation in your project's ai-log folder, so you can submit a transparent record of how you used Claude.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": { "name": "Hilary Havens" },
   "homepage": "https://hilaryhavens.github.io/ai-use-log/",
   "repository": "https://github.com/hilaryhavens/ai-use-log",
