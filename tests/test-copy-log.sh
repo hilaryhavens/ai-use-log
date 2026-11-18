@@ -132,6 +132,19 @@ run_hook "$P" "{\"session_id\":\"s11\",\"transcript_path\":\"$C/s11.jsonl\",\"cw
 [ "$(count "$P/ai-log/$PAGE" 'class="log"')" = 1 ] && ok "one log block" || bad "one log block"
 [ "$CODE" = 0 ] && [ -z "$OUT" ] && ok "still silent" || bad "still silent" "$CODE $OUT"
 
+echo "stale tmp from an interrupted rebuild"
+P="$T/proj13"; C="$T/claude13"; mkdir -p "$P/ai-log"; make_session "$C" s13
+echo partial > "$P/ai-log/$PAGE.tmp.99999"; touch -d '1 hour ago' "$P/ai-log/$PAGE.tmp.99999"
+echo partial > "$P/ai-log/$PAGE.tmp"; touch -d '1 hour ago' "$P/ai-log/$PAGE.tmp"
+echo inflight > "$P/ai-log/$PAGE.tmp.88888"
+run_hook "$P" "{\"session_id\":\"s13\",\"transcript_path\":\"$C/s13.jsonl\",\"cwd\":\"$P\"}"
+[ ! -e "$P/ai-log/$PAGE.tmp.99999" ] && [ ! -e "$P/ai-log/$PAGE.tmp" ] && ok "old tmp removed" || bad "old tmp removed" "$(ls "$P/ai-log")"
+[ -e "$P/ai-log/$PAGE.tmp.88888" ] && ok "fresh tmp (another run) left alone" || bad "fresh tmp (another run) left alone"
+has "$P/ai-log/$PAGE" "data-path=\"${TODAY}_s13.jsonl\"" && ok "page still written" || bad "page still written"
+
+echo "per-run tmp name"
+grep -q 'AI-Use-Log.html.tmp.\$\$\|out.tmp.\$\$\|\$out\.tmp\.\$\$' "$HOOK" && ok "tmp name includes PID" || bad "tmp name includes PID"
+
 echo "hook called by Windows path (as run-hook.cmd does)"
 if command -v cygpath >/dev/null 2>&1; then
   P="$T/proj12"; C="$T/claude12"; mkdir -p "$P"; make_session "$C" s12

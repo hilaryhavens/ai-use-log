@@ -1,15 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const MARKER = '<!--AI-USE-LOG-DATA-->';
+// Build to a temp file so running the tests never rewrites the committed template.
+const tmpOut = join(mkdtempSync(join(tmpdir(), 'ai-use-log-')), 'page-template.html');
 const build = () => {
-  execFileSync(process.execPath, ['scripts/build-page.mjs'], { cwd: root });
-  return readFileSync(root + 'hooks/page-template.html', 'utf8');
+  execFileSync(process.execPath, ['scripts/build-page.mjs', tmpOut], { cwd: root });
+  return readFileSync(tmpOut, 'utf8');
 };
+
+test('committed hooks/page-template.html matches docs/ (run node scripts/build-page.mjs)', () => {
+  const committed = readFileSync(root + 'hooks/page-template.html', 'utf8').replace(/\r\n/g, '\n');
+  assert.equal(build(), committed);
+});
 
 test('build produces template with one marker', () => {
   const lines = build().split('\n');

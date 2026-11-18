@@ -73,11 +73,15 @@ main() {
 # Every "<" in the data becomes < (valid inside JSON strings, the only place "<" can occur),
 # so no log text can close its <script> block or turn into markup.
 write_page() {
-  local logdir="$1" name="$2" tpl out f rel marker='<!--AI-USE-LOG-DATA-->'
+  local logdir="$1" name="$2" tpl out tmp f rel marker='<!--AI-USE-LOG-DATA-->'
   tpl="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/page-template.html"
   [ -f "$tpl" ] || return 0
   grep -qxF "$marker" "$tpl" || return 0
   out="$logdir/AI-Use-Log.html"
+  # One temp file per run, so two Claude windows can't write into each other's page.
+  tmp="$out.tmp.$$"
+  # Leftovers from a rebuild that was cut off (e.g. by the hook timeout); recent ones may be another run's.
+  find "$logdir" -maxdepth 1 -name 'AI-Use-Log.html.tmp*' -mmin +10 -exec rm -f {} + 2>/dev/null
 
   name="$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g; s/</\\u003c/g')"
   {
@@ -93,8 +97,8 @@ write_page() {
       printf '</script>\n'
     done
     sed "1,/^$marker\$/d" "$tpl"
-  } > "$out.tmp" && mv -f "$out.tmp" "$out"
-  rm -f "$out.tmp"
+  } > "$tmp" && mv -f "$tmp" "$out"
+  rm -f "$tmp"
 }
 
 main >/dev/null 2>&1

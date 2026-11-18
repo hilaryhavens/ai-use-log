@@ -27,4 +27,5 @@ if (script.includes('</script')) throw new Error('build-page: viewer code contai
 swap('<script type="module" src="viewer.js"></script>',
   MARKER + '\n<script>\n(() => {\n' + script.trimEnd() + '\n})();\n</script>');
 
-writeFileSync(root + 'hooks/page-template.html', html.endsWith('\n') ? html : html + '\n');
+const out = process.argv[2] || root + 'hooks/page-template.html';
+writeFileSync(out, html.endsWith('\n') ? html : html + '\n');
