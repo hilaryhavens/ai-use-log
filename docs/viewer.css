@@ -105,3 +105,6 @@ pre {
   details.tool { break-inside: avoid; }
   pre { max-height: none; }
 }
+
+/* The hidden attribute must win over .btn and other display rules. */
+[hidden] { display: none !important; }

@@ -267,7 +267,7 @@ if (embedded.length) {
   let meta = {};
   try { meta = JSON.parse($('ai-log-meta').textContent); } catch { /* no header info */ }
   $('loader').hidden = true;
-  document.querySelector('.site .lede').hidden = true;
+  for (const p of document.querySelectorAll('.site .lede:not(#embedded-head)')) p.hidden = true;
   const head = $('embedded-head');
   if (head) {
     const when = fmtDate(meta.updated);

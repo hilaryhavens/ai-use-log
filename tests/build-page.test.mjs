@@ -31,6 +31,16 @@ test('marker precedes viewer script and page closes', () => {
   assert.ok(t.trimEnd().endsWith('</html>'));
 });
 
+test('hidden attribute beats .btn display (single-session page hides "All sessions")', () => {
+  assert.match(build(), /\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
+});
+
+test('embedded mode hides the folder instructions, not its own header', () => {
+  const t = build();
+  assert.ok(!t.includes("querySelector('.site .lede')"), 'must not grab the first .lede (that is #embedded-head)');
+  assert.ok(t.includes(".site .lede:not(#embedded-head)"));
+});
+
 test('template build is deterministic', () => {
   assert.equal(build(), build());
 });
