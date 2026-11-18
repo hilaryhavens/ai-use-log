@@ -134,16 +134,28 @@ run_hook "$P" "{\"session_id\":\"s11\",\"transcript_path\":\"$C/s11.jsonl\",\"cw
 
 echo "stale tmp from an interrupted rebuild"
 P="$T/proj13"; C="$T/claude13"; mkdir -p "$P/ai-log"; make_session "$C" s13
-echo partial > "$P/ai-log/$PAGE.tmp.99999"; touch -d '1 hour ago' "$P/ai-log/$PAGE.tmp.99999"
-echo partial > "$P/ai-log/$PAGE.tmp"; touch -d '1 hour ago' "$P/ai-log/$PAGE.tmp"
-echo inflight > "$P/ai-log/$PAGE.tmp.88888"
+echo partial > "$P/ai-log/.$PAGE.tmp.99999"; touch -d '1 hour ago' "$P/ai-log/.$PAGE.tmp.99999"
+echo partial > "$P/ai-log/$PAGE.tmp.77777"; touch -d '1 hour ago' "$P/ai-log/$PAGE.tmp.77777"
+echo inflight > "$P/ai-log/.$PAGE.tmp.88888"
 run_hook "$P" "{\"session_id\":\"s13\",\"transcript_path\":\"$C/s13.jsonl\",\"cwd\":\"$P\"}"
-[ ! -e "$P/ai-log/$PAGE.tmp.99999" ] && [ ! -e "$P/ai-log/$PAGE.tmp" ] && ok "old tmp removed" || bad "old tmp removed" "$(ls "$P/ai-log")"
-[ -e "$P/ai-log/$PAGE.tmp.88888" ] && ok "fresh tmp (another run) left alone" || bad "fresh tmp (another run) left alone"
+[ ! -e "$P/ai-log/.$PAGE.tmp.99999" ] && [ ! -e "$P/ai-log/$PAGE.tmp.77777" ] && ok "old tmp removed (both names)" || bad "old tmp removed (both names)" "$(ls -a "$P/ai-log")"
+[ -e "$P/ai-log/.$PAGE.tmp.88888" ] && ok "fresh tmp (another run) left alone" || bad "fresh tmp (another run) left alone"
 has "$P/ai-log/$PAGE" "data-path=\"${TODAY}_s13.jsonl\"" && ok "page still written" || bad "page still written"
 
-echo "per-run tmp name"
-grep -q 'AI-Use-Log.html.tmp.\$\$\|out.tmp.\$\$\|\$out\.tmp\.\$\$' "$HOOK" && ok "tmp name includes PID" || bad "tmp name includes PID"
+echo "per-run tmp name, hidden-style"
+grep -qF 'tmp="$logdir/.AI-Use-Log.html.tmp.$$"' "$HOOK" && ok "tmp name is .AI-Use-Log.html.tmp.<pid>" || bad "tmp name is .AI-Use-Log.html.tmp.<pid>"
+
+echo "SessionEnd leaves an existing page alone (Claude cancels it on exit)"
+P="$T/proj14"; C="$T/claude14"; mkdir -p "$P/ai-log"; make_session "$C" s14
+echo keep > "$P/ai-log/$PAGE"
+run_hook "$P" "{\"session_id\":\"s14\",\"transcript_path\":\"$C/s14.jsonl\",\"cwd\":\"$P\",\"hook_event_name\":\"SessionEnd\"}"
+[ "$(cat "$P/ai-log/$PAGE")" = keep ] && ok "page untouched" || bad "page untouched"
+[ -f "$P/ai-log/${TODAY}_s14.jsonl" ] && ok "log still copied" || bad "log still copied"
+
+echo "SessionEnd builds the page when it is missing"
+P="$T/proj15"; C="$T/claude15"; mkdir -p "$P"; make_session "$C" s15
+run_hook "$P" "{\"session_id\":\"s15\",\"transcript_path\":\"$C/s15.jsonl\",\"cwd\":\"$P\",\"hook_event_name\":\"SessionEnd\"}"
+has "$P/ai-log/$PAGE" "data-path=\"${TODAY}_s15.jsonl\"" && ok "page built" || bad "page built"
 
 echo "hook called by Windows path (as run-hook.cmd does)"
 if command -v cygpath >/dev/null 2>&1; then

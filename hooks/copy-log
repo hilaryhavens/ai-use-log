@@ -65,7 +65,11 @@ main() {
     fi
   done
 
-  write_page "$logdir" "$(basename "$proj")"
+  # The Stop hook already rebuilt the page after the last reply. Claude Code cancels SessionEnd
+  # hooks as it exits, so rebuilding there would only leave a half-written temp file behind.
+  if [ "$(field hook_event_name)" != SessionEnd ] || [ ! -f "$logdir/AI-Use-Log.html" ]; then
+    write_page "$logdir" "$(basename "$proj")"
+  fi
   return 0
 }
 
@@ -79,9 +83,10 @@ write_page() {
   grep -qxF "$marker" "$tpl" || return 0
   out="$logdir/AI-Use-Log.html"
   # One temp file per run, so two Claude windows can't write into each other's page.
-  tmp="$out.tmp.$$"
+  # Dot name: hidden on Macs, and not mistaken for the page in a file listing.
+  tmp="$logdir/.AI-Use-Log.html.tmp.$$"
   # Leftovers from a rebuild that was cut off (e.g. by the hook timeout); recent ones may be another run's.
-  find "$logdir" -maxdepth 1 -name 'AI-Use-Log.html.tmp*' -mmin +10 -exec rm -f {} + 2>/dev/null
+  find "$logdir" -maxdepth 1 \( -name '.AI-Use-Log.html.tmp*' -o -name 'AI-Use-Log.html.tmp*' \) -mmin +10 -exec rm -f {} + 2>/dev/null
 
   name="$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g; s/</\\u003c/g')"
   {
